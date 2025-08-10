@@ -7,12 +7,14 @@ import StockTable from '@/components/tables/StockTable';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { toast } from 'sonner';
+import { connectToDatabase } from '@/lib/mongodb';
 
 export default function Dashboard() {
   const [kpis, setKpis] = useState(null);
 
-  useEffect(() => {
+  useEffect(async () => {
     fetchKPIs();
+    await connectToDatabase();
   }, []);
 
   const fetchKPIs = async () => {

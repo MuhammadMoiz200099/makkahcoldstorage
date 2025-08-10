@@ -46,7 +46,9 @@ export async function POST(request) {
     const token = generateToken({
       userId: user._id,
       username: user.username,
-      role: user.role
+      email: user.email,
+      role: user.role,
+      fullName: user.fullName
     });
 
     // Create response with token in cookie
