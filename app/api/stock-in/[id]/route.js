@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
-import { connectToDatabase } from '../../../../lib/mongodb';
-import StockIn from '../../../../models/StockIn';
-import { getAuthUser } from '../../../../lib/auth';
+import { connectToDatabase } from '@/lib/mongodb';
+import StockIn from '@/models/StockIn';
+import { getAuthUser } from '@/lib/auth';
 
 export async function GET(request, { params }) {
   try {

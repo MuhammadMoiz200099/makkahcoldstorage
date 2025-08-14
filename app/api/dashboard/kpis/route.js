@@ -1,8 +1,8 @@
 import { NextResponse } from 'next/server';
-import { connectToDatabase } from '../../../../lib/mongodb';
-import StockIn from '../../../../models/StockIn';
-import StockOut from '../../../../models/StockOut';
-import { getAuthUser } from '../../../../lib/auth';
+import { connectToDatabase } from '@/lib/mongodb';
+import StockIn from '@/models/StockIn';
+import StockOut from '@/models/StockOut';
+import { getAuthUser } from '@/lib/auth';
 import { startOfDay, endOfDay, startOfMonth, endOfMonth } from 'date-fns';
 
 export async function GET(request) {

@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
-import { connectToDatabase } from '../../../lib/mongodb';
-import StockOut from '../../../models/StockOut';
-import { getAuthUser } from '../../../lib/auth';
+import { connectToDatabase } from '@/lib/mongodb';
+import StockOut from '@/models/StockOut';
+import { getAuthUser } from '@/lib/auth';
 
 export async function GET(request) {
   try {
