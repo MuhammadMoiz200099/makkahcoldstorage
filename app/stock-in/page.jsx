@@ -121,7 +121,7 @@ export default function StockInPage() {
                   </div>
                   <div>
                     <label className="text-sm font-medium text-gray-500">Rupees</label>
-                    <p>₹{selectedItem.rupees}</p>
+                    <p>Rs. {selectedItem.rupees}</p>
                   </div>
                   <div>
                     <label className="text-sm font-medium text-gray-500">Crates Per Month</label>

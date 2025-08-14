@@ -3,6 +3,8 @@ import { connectToDatabase } from '@/lib/mongodb';
 import StockIn from '@/models/StockIn';
 import { getAuthUser } from '@/lib/auth';
 
+export const runtime = 'nodejs';
+
 export async function GET(request, { params }) {
   try {
     const authUser = getAuthUser(request);

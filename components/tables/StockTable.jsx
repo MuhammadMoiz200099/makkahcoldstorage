@@ -130,7 +130,7 @@ export default function StockTable({ type = 'in', onView, onEdit, onDelete }) {
                     <>
                       <TableCell>{item.roomNo}</TableCell>
                       <TableCell>{item.crates}</TableCell>
-                      <TableCell>₹{item.rupees}</TableCell>
+                      <TableCell>Rs. {item.rupees}</TableCell>
                       <TableCell>{format(new Date(item.inwardDate), 'MMM dd, yyyy')}</TableCell>
                     </>
                   ) : (

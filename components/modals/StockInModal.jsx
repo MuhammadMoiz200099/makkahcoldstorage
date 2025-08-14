@@ -8,6 +8,7 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { toast } from 'sonner';
 import { format } from 'date-fns';
+import useStorage from '@/hooks/use-storage';
 
 export default function StockInModal({ isOpen, onClose, onSuccess, editData = null }) {
   const [formData, setFormData] = useState({
@@ -25,6 +26,7 @@ export default function StockInModal({ isOpen, onClose, onSuccess, editData = nu
     cmNo: ''
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const storage = useStorage();
 
   useEffect(() => {
     if (editData) {
@@ -80,7 +82,8 @@ export default function StockInModal({ isOpen, onClose, onSuccess, editData = nu
         crates: parseFloat(formData.crates) || 0,
         rupees: parseFloat(formData.rupees) || 0,
         cratesPerMonth: parseFloat(formData.cratesPerMonth) || 0,
-        issuedDate: formData.issuedDate || null
+        issuedDate: formData.issuedDate || null,
+        createdBy: storage.getUser().id
       };
 
       const url = editData ? `/api/stock-in/${editData._id}` : '/api/stock-in';

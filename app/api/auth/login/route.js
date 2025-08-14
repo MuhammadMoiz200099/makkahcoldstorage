@@ -59,7 +59,8 @@ export async function POST(request) {
         username: user.username,
         email: user.email,
         role: user.role,
-        fullName: user.fullName
+        fullName: user.fullName,
+        accessToken: token
       }
     });
 

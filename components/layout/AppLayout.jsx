@@ -19,6 +19,7 @@ import {
   User
 } from 'lucide-react';
 import Link from 'next/link';
+import useStorage from '@/hooks/use-storage';
 
 const navigation = [
   { name: 'Dashboard', href: '/', icon: Home },
@@ -36,6 +37,7 @@ export default function AppLayout({ children }) {
   const [user, setUser] = useState(null);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const router = useRouter();
+  const storage = useStorage();
   const pathname = usePathname();
 
   useEffect(() => {
@@ -44,7 +46,8 @@ export default function AppLayout({ children }) {
 
   const fetchUser = async () => {
     try {
-      const response = await fetch('/api/auth/me');
+      const user = JSON.parse(localStorage.getItem('user'));
+      const response = await fetch(`/api/auth/me?id=${user.id}`);
       if (response.ok) {
         const data = await response.json();
         setUser(data.user);
@@ -61,6 +64,7 @@ export default function AppLayout({ children }) {
       });
 
       if (response.ok) {
+        storage.clearStorage();
         toast.success('Logged out successfully');
         router.push('/login');
       }
@@ -107,7 +111,7 @@ export default function AppLayout({ children }) {
             <div className="flex flex-shrink-0 items-center px-4 mb-6">
               <div className="flex items-center">
                 <Package className="h-8 w-8 text-primary" />
-                <span className="ml-2 text-lg font-bold text-gray-900">Inventory</span>
+                <span className="ml-2 text-lg font-bold text-gray-900">Makkah Cold Storage</span>
               </div>
             </div>
             <nav className="flex-1 space-y-1 px-2">
@@ -123,7 +127,7 @@ export default function AppLayout({ children }) {
           <div className="flex flex-col h-full">
             <div className="flex items-center px-6 py-4 border-b">
               <Package className="h-8 w-8 text-primary" />
-              <span className="ml-2 text-lg font-bold text-gray-900">Inventory</span>
+              <span className="ml-2 text-lg font-bold text-gray-900">MCS</span>
             </div>
             <nav className="flex-1 py-4">
               <NavigationItems mobile />

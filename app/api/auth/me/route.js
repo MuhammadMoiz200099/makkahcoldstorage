@@ -3,7 +3,7 @@ import { connectToDatabase } from '@/lib/mongodb';
 import User from '@/models/User';
 import { getAuthUser } from '@/lib/auth';
 
-export async function GET(request) {
+export async function GET(request, { params }) {
   try {
     const authUser = getAuthUser(request);
     
@@ -15,8 +15,10 @@ export async function GET(request) {
     }
 
     await connectToDatabase();
+
+    const userID = params?.id;
     
-    const user = await User.findById(authUser.userId).select('-password');
+    const user = await User.findById(userID).select('-password');
     
     if (!user) {
       return NextResponse.json(

@@ -8,6 +8,8 @@ import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { toast } from 'sonner';
 import { Loader2, Package } from 'lucide-react';
+import axios from "axios";
+import useStorage from "@/hooks/use-storage";
 
 export default function LoginPage() {
   const [formData, setFormData] = useState({
@@ -16,29 +18,29 @@ export default function LoginPage() {
   });
   const [isLoading, setIsLoading] = useState(false);
   const router = useRouter();
+  const storage = useStorage();
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setIsLoading(true);
 
     try {
-      const response = await fetch('/api/auth/login', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(formData),
+      const response = await axios.post('/api/auth/login', formData, {
+        withCredentials: true
       });
+      const data = response.data;
 
-      const data = await response.json();
-
-      if (response.ok) {
+      if(response?.statusText === 'OK') {
         toast.success('Login successful!');
+        let user = data.user;
+        storage.saveToken(user.accessToken);
+        delete user.accessToken;
+        storage.saveUser(user);
         router.push('/');
-        router.refresh();
       } else {
         toast.error(data.error || 'Login failed');
       }
+
     } catch (error) {
       toast.error('Network error. Please try again.');
     } finally {
@@ -60,7 +62,7 @@ export default function LoginPage() {
           <div className="w-16 h-16 bg-primary rounded-full flex items-center justify-center mx-auto mb-4">
             <Package className="h-8 w-8 text-primary-foreground" />
           </div>
-          <CardTitle className="text-2xl font-bold">Inventory Management</CardTitle>
+          <CardTitle className="text-2xl font-bold">Makkah Cold Storage</CardTitle>
           <CardDescription>Sign in to access your dashboard</CardDescription>
         </CardHeader>
         <CardContent>

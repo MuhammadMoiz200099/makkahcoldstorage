@@ -23,7 +23,7 @@ export default function KPICards({ kpis }) {
     {
       title: 'Monthly Stock In',
       value: kpis?.monthly?.stockIn?.count || 0,
-      subValue: `₹${kpis?.monthly?.stockIn?.totalRupees || 0}`,
+      subValue: `Rs. ${kpis?.monthly?.stockIn?.totalRupees || 0}`,
       icon: TrendingUp,
       color: 'text-green-600',
       bgColor: 'bg-green-100',

@@ -1,21 +1,54 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import AppLayout from '@/components/layout/AppLayout';
 import KPICards from '@/components/dashboard/KPICards';
 import StockTable from '@/components/tables/StockTable';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { toast } from 'sonner';
-import { connectToDatabase } from '@/lib/mongodb';
+import useStorage from '@/hooks/use-storage';
 
 export default function Dashboard() {
   const [kpis, setKpis] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const router = useRouter();
+  const storage = useStorage();
 
-  useEffect(async () => {
-    fetchKPIs();
-    await connectToDatabase();
-  }, []);
+  useEffect(() => {
+    const handleSession = () => {
+      const token = storage.getToken();
+      const user = storage.getUser();
+
+      if (!token || !user) {
+        router.push('/login');
+        return false;
+      }
+
+      try {
+        if (!user.id) {
+          router.push('/login');
+          return false;
+        }
+      } catch {
+        router.push('/login');
+        return false;
+      }
+
+      return true;
+    };
+
+    const init = async () => {
+      const valid = handleSession();
+      if (valid) {
+        await fetchKPIs();
+      }
+      setLoading(false);
+    };
+
+    init();
+  }, [router]);
 
   const fetchKPIs = async () => {
     try {
@@ -24,24 +57,9 @@ export default function Dashboard() {
         const data = await response.json();
         setKpis(data.kpis);
       }
-    } catch (error) {
+    } catch {
       toast.error('Failed to fetch KPIs');
     }
-  };
-
-  const handleView = (item) => {
-    // Implement view functionality
-    console.log('View item:', item);
-  };
-
-  const handleEdit = (item) => {
-    // Implement edit functionality
-    console.log('Edit item:', item);
-  };
-
-  const handleDelete = (item) => {
-    // Implement delete functionality
-    console.log('Delete item:', item);
   };
 
   return (
@@ -53,43 +71,35 @@ export default function Dashboard() {
             Overview of your inventory management system
           </p>
         </div>
-
-        {/* KPI Cards */}
-        <KPICards kpis={kpis} />
-
-        {/* Recent Activity Table */}
-        <Card>
-          <CardHeader>
-            <CardTitle>Recent Activity</CardTitle>
-            <CardDescription>
-              Latest stock in and out transactions
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <Tabs defaultValue="stock-in">
-              <TabsList>
-                <TabsTrigger value="stock-in">Stock In</TabsTrigger>
-                <TabsTrigger value="stock-out">Stock Out</TabsTrigger>
-              </TabsList>
-              <TabsContent value="stock-in" className="mt-6">
-                <StockTable 
-                  type="in" 
-                  onView={handleView}
-                  onEdit={handleEdit}
-                  onDelete={handleDelete}
-                />
-              </TabsContent>
-              <TabsContent value="stock-out" className="mt-6">
-                <StockTable 
-                  type="out" 
-                  onView={handleView}
-                  onEdit={handleEdit}
-                  onDelete={handleDelete}
-                />
-              </TabsContent>
-            </Tabs>
-          </CardContent>
-        </Card>
+        {loading ? (
+          <div>loading...</div>
+        ) : (
+          <>
+            <KPICards kpis={kpis} />
+            <Card>
+              <CardHeader>
+                <CardTitle>Recent Activity</CardTitle>
+                <CardDescription>
+                  Latest stock in and out transactions
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <Tabs defaultValue="stock-in">
+                  <TabsList>
+                    <TabsTrigger value="stock-in">Stock In</TabsTrigger>
+                    <TabsTrigger value="stock-out">Stock Out</TabsTrigger>
+                  </TabsList>
+                  <TabsContent value="stock-in" className="mt-6">
+                    <StockTable type="in" />
+                  </TabsContent>
+                  <TabsContent value="stock-out" className="mt-6">
+                    <StockTable type="out" />
+                  </TabsContent>
+                </Tabs>
+              </CardContent>
+            </Card>
+          </>
+        )}
       </div>
     </AppLayout>
   );
