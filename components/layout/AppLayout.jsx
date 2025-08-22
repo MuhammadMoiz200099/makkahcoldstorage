@@ -77,9 +77,17 @@ export default function AppLayout({ children }) {
     ? [...navigation, ...adminNavigation]
     : navigation;
 
+  // Filter out Users page for non-admin users
+  const filteredNavigation = allNavigation.filter(item => {
+    if (item.name === 'Users' && user?.role !== 'admin') {
+      return false;
+    }
+    return true;
+  });
+
   const NavigationItems = ({ mobile = false }) => (
     <>
-      {allNavigation.map((item) => {
+      {filteredNavigation.map((item) => {
         const Icon = item.icon;
         const isActive = pathname === item.href;
         
