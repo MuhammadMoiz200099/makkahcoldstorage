@@ -17,30 +17,26 @@ const StockOutSchema = new mongoose.Schema({
   },
   subPartyName: {
     type: String,
-    required: true,
     trim: true
   },
   goodDeliveredTo: {
     type: String,
-    required: true,
     trim: true
   },
-  partyDeliveryOn: {
-    type: Date,
-    required: true
+  partyGrNo: {
+    type: String,
+    trim: true
   },
-  coldStoreDeliveryOn: {
-    type: Date,
-    required: true
+  coldStoreGrNo: {
+    type: String,
+    trim: true
   },
   vehicle: {
     type: String,
-    required: true,
     trim: true
   },
   driverName: {
     type: String,
-    required: true,
     trim: true
   },
   createdBy: {

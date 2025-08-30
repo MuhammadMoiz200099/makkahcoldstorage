@@ -6,11 +6,12 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
-import { Search, ChevronLeft, ChevronRight, MoreVertical, Eye, Edit, Trash2 } from 'lucide-react';
+import { Search, ChevronLeft, ChevronRight, MoreVertical, Eye, Edit, Trash2, Printer } from 'lucide-react';
 import { format } from 'date-fns';
 import { toast } from 'sonner';
 
-export default function StockTable({ type = 'in', onView, onEdit, onDelete }) {
+
+export default function StockTable({ type = 'in', onView, onPrint, onEdit, onDelete }) {
   const [data, setData] = useState([]);
   const [loading, setLoading] = useState(false);
   const [search, setSearch] = useState('');
@@ -148,6 +149,10 @@ export default function StockTable({ type = 'in', onView, onEdit, onDelete }) {
                         </Button>
                       </DropdownMenuTrigger>
                       <DropdownMenuContent align="end">
+                        <DropdownMenuItem onClick={() => onPrint(item)}>
+                          <Printer className="mr-2 h-4 w-4" />
+                          Print
+                        </DropdownMenuItem>
                         <DropdownMenuItem onClick={() => onView(item)}>
                           <Eye className="mr-2 h-4 w-4" />
                           View

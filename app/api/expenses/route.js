@@ -25,28 +25,22 @@ export async function GET(request) {
     const monthStart = startOfMonth(monthDate);
     const monthEnd = endOfMonth(monthDate);
 
-    // Build match query for search
-    const matchQuery = {
-      $or: [
-        { partyName: { $regex: search, $options: 'i' } },
-        { subPartyName: { $regex: search, $options: 'i' } }
-      ]
-    };
+    // Build match query for search (only partyName now)
+    const matchQuery = search
+      ? { partyName: { $regex: search, $options: 'i' } }
+      : {};
 
     // Aggregate stock in data
     const stockInAggregation = [
       {
         $match: {
           inwardDate: { $gte: monthStart, $lte: monthEnd },
-          ...(search && matchQuery)
+          ...matchQuery
         }
       },
       {
         $group: {
-          _id: {
-            partyName: '$partyName',
-            subPartyName: '$subPartyName'
-          },
+          _id: '$partyName',
           stockInCount: { $sum: 1 },
           totalCrates: { $sum: '$crates' },
           totalAmount: { $sum: '$rupees' },
@@ -60,15 +54,12 @@ export async function GET(request) {
       {
         $match: {
           date: { $gte: monthStart, $lte: monthEnd },
-          ...(search && matchQuery)
+          ...matchQuery
         }
       },
       {
         $group: {
-          _id: {
-            partyName: '$partyName',
-            subPartyName: '$subPartyName'
-          },
+          _id: '$partyName',
           stockOutCount: { $sum: 1 },
           lastTransaction: { $max: '$date' }
         }
@@ -80,15 +71,13 @@ export async function GET(request) {
       StockOut.aggregate(stockOutAggregation)
     ]);
 
-    // Combine data by party
+    // Combine data by partyName only
     const expenseMap = new Map();
 
     // Process stock in data
     stockInData.forEach(item => {
-      const key = `${item._id.partyName}-${item._id.subPartyName}`;
-      expenseMap.set(key, {
-        partyName: item._id.partyName,
-        subPartyName: item._id.subPartyName,
+      expenseMap.set(item._id, {
+        partyName: item._id,
         stockInCount: item.stockInCount,
         stockOutCount: 0,
         totalCrates: item.totalCrates,
@@ -99,18 +88,16 @@ export async function GET(request) {
 
     // Process stock out data
     stockOutData.forEach(item => {
-      const key = `${item._id.partyName}-${item._id.subPartyName}`;
-      if (expenseMap.has(key)) {
-        const existing = expenseMap.get(key);
+      if (expenseMap.has(item._id)) {
+        const existing = expenseMap.get(item._id);
         existing.stockOutCount = item.stockOutCount;
         existing.lastTransaction = new Date(Math.max(
           new Date(existing.lastTransaction),
           new Date(item.lastTransaction)
         ));
       } else {
-        expenseMap.set(key, {
-          partyName: item._id.partyName,
-          subPartyName: item._id.subPartyName,
+        expenseMap.set(item._id, {
+          partyName: item._id,
           stockInCount: 0,
           stockOutCount: item.stockOutCount,
           totalCrates: 0,

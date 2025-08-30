@@ -8,7 +8,7 @@ export default function KPICards({ kpis }) {
     {
       title: "Today's Stock In",
       value: kpis?.today?.stockIn?.count || 0,
-      subValue: `${kpis?.today?.stockIn?.totalCrates || 0} Crates`,
+      subValue: `${kpis?.today?.stockIn?.totalCrates || 0} parcels`,
       icon: Package,
       color: 'text-green-600',
       bgColor: 'bg-green-100',

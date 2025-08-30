@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import AppLayout from '@/components/layout/AppLayout';
 import StockTable from '@/components/tables/StockTable';
 import StockInModal from '@/components/modals/StockInModal';
@@ -9,12 +9,15 @@ import { Input } from '@/components/ui/input';
 import { Plus, Search } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { format } from 'date-fns';
+import StockInPrint from '@/components/print/stockin';
 
 export default function StockInPage() {
+  const printRef = useRef();
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [isViewModalOpen, setIsViewModalOpen] = useState(false);
   const [selectedItem, setSelectedItem] = useState(null);
+  const [selectedPrintItem, setSelectedPrintItem] = useState(null);
   const [tableKey, setTableKey] = useState(0);
 
   const handleView = (item) => {
@@ -31,11 +34,35 @@ export default function StockInPage() {
     setTableKey(prev => prev + 1); // Force table refresh
   };
 
+  const handlePrint = (item) => {
+    setSelectedPrintItem(item);
+  }
+
+  useEffect(() => {
+    if (selectedPrintItem) {
+      const printContents = printRef.current.innerHTML;
+      const originalContents = document.body.innerHTML;
+
+      // Replace body with print layout
+      document.body.innerHTML = printContents;
+
+      window.print(); // Open print modal
+
+      // Restore original page
+      document.body.innerHTML = originalContents;
+      window.location.reload(); // reload so React re-renders UI
+      setSelectedPrintItem(null);
+    }
+  }, [selectedPrintItem])
+
   return (
     <AppLayout>
       <div className="space-y-8">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight">Stock In</h1>
+          <div className='flex flex-col gap-2 items-baseline md:flex-row mb-2'>
+            <h1 className="text-3xl font-bold tracking-tight">Stock In</h1>
+            <span>(goods received note)</span>
+          </div>
           <p className="text-muted-foreground">
             Manage your stock in transactions and inventory
           </p>
@@ -50,11 +77,12 @@ export default function StockInPage() {
         </div>
 
         {/* Stock In Table */}
-        <StockTable 
+        <StockTable
           key={tableKey}
-          type="in" 
+          type="in"
           onView={handleView}
           onEdit={handleEdit}
+          onPrint={handlePrint}
         />
 
         {/* Add Modal */}
@@ -116,7 +144,7 @@ export default function StockInPage() {
                     <p>{selectedItem.received}</p>
                   </div>
                   <div>
-                    <label className="text-sm font-medium text-gray-500">Crates</label>
+                    <label className="text-sm font-medium text-gray-500">Crates / Parcels</label>
                     <p>{selectedItem.crates}</p>
                   </div>
                   <div>
@@ -133,12 +161,6 @@ export default function StockInPage() {
                       <p>{format(new Date(selectedItem.issuedDate), 'MMM dd, yyyy')}</p>
                     </div>
                   )}
-                  {selectedItem.cmNo && (
-                    <div>
-                      <label className="text-sm font-medium text-gray-500">C.M. No.</label>
-                      <p>{selectedItem.cmNo}</p>
-                    </div>
-                  )}
                 </div>
                 {selectedItem.customerMark && (
                   <div>
@@ -151,6 +173,7 @@ export default function StockInPage() {
           </DialogContent>
         </Dialog>
       </div>
+      <StockInPrint ref={printRef} item={selectedPrintItem} />
     </AppLayout>
   );
 }

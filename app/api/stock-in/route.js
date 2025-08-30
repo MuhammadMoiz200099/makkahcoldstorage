@@ -75,7 +75,8 @@ export async function POST(request) {
 
     const stockIn = new StockIn({
       ...data,
-      serialNo
+      serialNo,
+      createdBy: authUser.userId
     });
 
     await stockIn.save();

@@ -8,7 +8,10 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { toast } from 'sonner';
 import { format } from 'date-fns';
-import useStorage from '@/hooks/use-storage';
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem } from '@/components/ui/command';
+import { Check, ChevronsUpDown, Loader2 } from "lucide-react";
+import { cn } from "@/lib/utils"
 
 export default function StockInModal({ isOpen, onClose, onSuccess, editData = null }) {
   const [formData, setFormData] = useState({
@@ -22,11 +25,12 @@ export default function StockInModal({ isOpen, onClose, onSuccess, editData = nu
     rupees: '',
     cratesPerMonth: '',
     customerMark: '',
-    issuedDate: '',
-    cmNo: ''
+    issuedDate: ''
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const storage = useStorage();
+  const [parties, setParties] = useState([]);  // store all parties
+  const [loadingParties, setLoadingParties] = useState(false);
+  const [openCmd, setOpenCmd] = useState(false)
 
   useEffect(() => {
     if (editData) {
@@ -41,8 +45,7 @@ export default function StockInModal({ isOpen, onClose, onSuccess, editData = nu
         rupees: editData.rupees || '',
         cratesPerMonth: editData.cratesPerMonth || '',
         customerMark: editData.customerMark || '',
-        issuedDate: editData.issuedDate ? format(new Date(editData.issuedDate), 'yyyy-MM-dd') : '',
-        cmNo: editData.cmNo || ''
+        issuedDate: editData.issuedDate ? format(new Date(editData.issuedDate), 'yyyy-MM-dd') : ''
       });
     } else {
       resetForm();
@@ -62,7 +65,6 @@ export default function StockInModal({ isOpen, onClose, onSuccess, editData = nu
       cratesPerMonth: '',
       customerMark: '',
       issuedDate: '',
-      cmNo: ''
     });
   };
 
@@ -83,7 +85,6 @@ export default function StockInModal({ isOpen, onClose, onSuccess, editData = nu
         rupees: parseFloat(formData.rupees) || 0,
         cratesPerMonth: parseFloat(formData.cratesPerMonth) || 0,
         issuedDate: formData.issuedDate || null,
-        createdBy: storage.getUser().id
       };
 
       const url = editData ? `/api/stock-in/${editData._id}` : '/api/stock-in';
@@ -117,13 +118,41 @@ export default function StockInModal({ isOpen, onClose, onSuccess, editData = nu
     onClose();
   };
 
+  useEffect(() => {
+    if (!open || parties.length > 0) return
+    const fetchParties = async () => {
+      setLoadingParties(true);
+      try {
+        const res = await fetch('/api/party');
+        const data = await res.json();
+        if (res.ok) {
+          setParties(data.parties || []);
+        } else {
+          toast.error(data.error || 'Failed to load parties');
+        }
+      } catch (error) {
+        toast.error('Error fetching parties');
+      } finally {
+        setLoadingParties(false);
+      }
+    };
+
+    if (isOpen) {
+      fetchParties();
+    }
+  }, [isOpen]);
+
   return (
     <Dialog open={isOpen} onOpenChange={handleClose}>
       <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>{editData ? 'Edit Stock In' : 'Add Stock In'}</DialogTitle>
+          <DialogTitle>
+            {editData ? 'Edit Stock In' : 'Add Stock In'}
+            <span className='ml-2'>(Goods Received Note)</span>
+          </DialogTitle>
+
         </DialogHeader>
-        
+
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="grid grid-cols-2 gap-4">
             <div>
@@ -151,53 +180,110 @@ export default function StockInModal({ isOpen, onClose, onSuccess, editData = nu
 
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <Label htmlFor="partyName">Party Name *</Label>
-              <Input
-                id="partyName"
-                name="partyName"
-                value={formData.partyName}
-                onChange={handleChange}
-                required
-              />
+              <Label>Party Name *</Label>
+              <Popover open={openCmd} onOpenChange={setOpenCmd}>
+                <PopoverTrigger asChild>
+                  <Button
+                    variant="outline"
+                    role="combobox"
+                    className="w-full justify-between"
+                  >
+                    {formData.partyName || "Select or add party..."}
+                    <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-[300px] p-0">
+                  <Command>
+                    <CommandInput
+                      placeholder="Search or add party..."
+                      onValueChange={(val) => {
+                        setFormData(prev => ({ ...prev, partyName: val }))
+                      }}
+                      value={formData.partyName}
+                    />
+                    {loadingParties ? (
+                      <div className="flex items-center justify-center p-4">
+                        <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                        <span className="text-sm text-gray-500">Loading...</span>
+                      </div>
+                    ) : (
+                      <>
+                        {/* If no party found → allow adding new */}
+                        <CommandEmpty>
+                          <Button
+                            variant="ghost"
+                            className="w-full justify-start"
+                            onClick={() => {
+                              setFormData(prev => ({ ...prev, partyName: formData.partyName }))
+                              setOpenCmd(false)
+                            }}
+                          >
+                            ➕ Add "{formData.partyName}"
+                          </Button>
+                        </CommandEmpty>
+
+                        <CommandGroup>
+                          {parties.map((party, idx) => (
+                            <CommandItem
+                              key={idx}
+                              value={party}
+                              onSelect={(currentValue) => {
+                                setFormData(prev => ({ ...prev, partyName: currentValue }))
+                                setOpenCmd(false) // close after select
+                              }}
+                            >
+                              <Check
+                                className={cn(
+                                  "mr-2 h-4 w-4",
+                                  formData.partyName === party ? "opacity-100" : "opacity-0"
+                                )}
+                              />
+                              {party}
+                            </CommandItem>
+                          ))}
+                        </CommandGroup>
+                      </>
+                    )}
+                  </Command>
+                </PopoverContent>
+              </Popover>
             </div>
+
             <div>
-              <Label htmlFor="subPartyName">Sub Party Name *</Label>
+              <Label htmlFor="subPartyName">Sub Party Name</Label>
               <Input
                 id="subPartyName"
                 name="subPartyName"
                 value={formData.subPartyName}
                 onChange={handleChange}
-                required
               />
             </div>
           </div>
 
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <Label htmlFor="roomNo">Room No. *</Label>
+              <Label htmlFor="roomNo">Room No.</Label>
               <Input
                 id="roomNo"
                 name="roomNo"
                 value={formData.roomNo}
                 onChange={handleChange}
-                required
               />
             </div>
             <div>
-              <Label htmlFor="rackNo">Rack No. *</Label>
+              <Label htmlFor="rackNo">Rack No.</Label>
               <Input
                 id="rackNo"
                 name="rackNo"
                 value={formData.rackNo}
                 onChange={handleChange}
-                required
               />
             </div>
           </div>
 
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <Label htmlFor="received">Received *</Label>
+              <Label htmlFor="received">Received</Label>
               <Input
                 id="received"
                 name="received"
@@ -205,11 +291,10 @@ export default function StockInModal({ isOpen, onClose, onSuccess, editData = nu
                 step="0.01"
                 value={formData.received}
                 onChange={handleChange}
-                required
               />
             </div>
             <div>
-              <Label htmlFor="crates">Crates *</Label>
+              <Label htmlFor="crates">Crates / Parcels</Label>
               <Input
                 id="crates"
                 name="crates"
@@ -217,14 +302,13 @@ export default function StockInModal({ isOpen, onClose, onSuccess, editData = nu
                 step="0.01"
                 value={formData.crates}
                 onChange={handleChange}
-                required
               />
             </div>
           </div>
 
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <Label htmlFor="rupees">Rupees *</Label>
+              <Label htmlFor="rupees">Rupees per month</Label>
               <Input
                 id="rupees"
                 name="rupees"
@@ -232,11 +316,10 @@ export default function StockInModal({ isOpen, onClose, onSuccess, editData = nu
                 step="0.01"
                 value={formData.rupees}
                 onChange={handleChange}
-                required
               />
             </div>
             <div>
-              <Label htmlFor="cratesPerMonth">Crates Per Month *</Label>
+              <Label htmlFor="cratesPerMonth">Crates / Parcels weight kg</Label>
               <Input
                 id="cratesPerMonth"
                 name="cratesPerMonth"
@@ -244,19 +327,8 @@ export default function StockInModal({ isOpen, onClose, onSuccess, editData = nu
                 step="0.01"
                 value={formData.cratesPerMonth}
                 onChange={handleChange}
-                required
               />
             </div>
-          </div>
-
-          <div>
-            <Label htmlFor="cmNo">C.M. No.</Label>
-            <Input
-              id="cmNo"
-              name="cmNo"
-              value={formData.cmNo}
-              onChange={handleChange}
-            />
           </div>
 
           <div>

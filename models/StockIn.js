@@ -17,37 +17,30 @@ const StockInSchema = new mongoose.Schema({
   },
   subPartyName: {
     type: String,
-    required: true,
     trim: true
   },
   roomNo: {
     type: String,
-    required: true,
     trim: true
   },
   rackNo: {
     type: String,
-    required: true,
     trim: true
   },
   received: {
     type: Number,
-    required: true,
     min: 0
   },
   crates: {
     type: Number,
-    required: true,
     min: 0
   },
   rupees: {
     type: Number,
-    required: true,
     min: 0
   },
   cratesPerMonth: {
     type: Number,
-    required: true,
     min: 0
   },
   customerMark: {
@@ -56,10 +49,6 @@ const StockInSchema = new mongoose.Schema({
   },
   issuedDate: {
     type: Date
-  },
-  cmNo: {
-    type: String,
-    trim: true
   },
   createdBy: {
     type: mongoose.Schema.Types.ObjectId,

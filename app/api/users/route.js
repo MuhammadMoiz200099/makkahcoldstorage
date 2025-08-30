@@ -5,9 +5,10 @@ import { getAuthUser } from '@/lib/auth';
 
 export async function GET(request) {
   try {
+
     const authUser = getAuthUser(request);
-    if (!authUser || authUser.role !== 'admin') {
-      return NextResponse.json({ error: 'Access denied' }, { status: 403 });
+    if (!authUser) {
+      return NextResponse.json({ error: 'Not authenticated' }, { status: 401 });
     }
 
     await connectToDatabase();
@@ -52,8 +53,8 @@ export async function GET(request) {
 export async function POST(request) {
   try {
     const authUser = getAuthUser(request);
-    if (!authUser || authUser.role !== 'admin') {
-      return NextResponse.json({ error: 'Access denied' }, { status: 403 });
+    if (!authUser) {
+      return NextResponse.json({ error: 'Not authenticated' }, { status: 401 });
     }
 
     await connectToDatabase();

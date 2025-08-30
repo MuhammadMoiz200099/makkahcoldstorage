@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import AppLayout from '@/components/layout/AppLayout';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -8,24 +8,25 @@ import { Input } from '@/components/ui/input';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Search, ChevronLeft, ChevronRight, Calendar, DollarSign, Package, PackageOpen } from 'lucide-react';
+import { Search, ChevronLeft, ChevronRight, Calendar, DollarSign, Package, PackageOpen, Printer } from 'lucide-react';
 import { toast } from 'sonner';
-import { format, startOfMonth, endOfMonth, subMonths } from 'date-fns';
-import useStorage from '@/hooks/use-storage';
+import { format, subMonths } from 'date-fns';
+import axios from "axios";
+import ExpensesPrint from '@/components/print/expenses';
 
 export default function ExpensesPage() {
+  const printRef = useRef();
   const [expenses, setExpenses] = useState([]);
   const [loading, setLoading] = useState(false);
   const [search, setSearch] = useState('');
   const [selectedMonth, setSelectedMonth] = useState(format(new Date(), 'yyyy-MM'));
+  const [selectedPrintItem, setSelectedPrintItem] = useState(null);
   const [pagination, setPagination] = useState({
     page: 1,
     limit: 10,
     total: 0,
     pages: 0
   });
-
-  const storage = useStorage();
 
   useEffect(() => {
     fetchExpenses();
@@ -41,11 +42,7 @@ export default function ExpensesPage() {
         month: selectedMonth
       });
 
-      const response = await fetch(`/api/expenses?${params}`, {
-        headers: {
-          'Authorization': `Bearer ${storage.getToken()}`,
-        },
-      });
+      const response = await fetch(`/api/expenses?${params}`);
 
       if (response.ok) {
         const result = await response.json();
@@ -95,6 +92,55 @@ export default function ExpensesPage() {
   const getTotalStockOut = () => {
     return expenses.reduce((total, expense) => total + expense.stockOutCount, 0);
   };
+
+  const handlePrint = async (item) => {
+    try {
+      const res = await axios.get(`/api/party/${encodeURIComponent(item.partyName)}`);
+      const response = res.data;
+      if(response.stockIn && response.stockIn.length) {
+        const stocks = response.stockIn;
+        const size = stocks.length;
+        let data = {
+          partyName: response.partyName,
+          stockOut: response.stockOut,
+          stockIn: []
+        }
+        if(size > 20) {
+          data.stockIn = response.stockIn;
+        } else {
+          let dummy = Array(20 - size).fill({});
+          let dums = [...response.stockIn, ...dummy];
+          data.stockIn = dums;
+        }
+        setSelectedPrintItem(data)
+      }
+      
+    } catch (error) {
+      if (error.response) {
+        console.error("API Error:", error.response.data);
+      } else {
+        console.error("Request Error:", error.message);
+      }
+    }
+  };
+
+  useEffect(() => {
+    if (selectedPrintItem) {
+      console.log(selectedPrintItem)
+      const printContents = printRef.current.innerHTML;
+      const originalContents = document.body.innerHTML;
+
+      // Replace body with print layout
+      document.body.innerHTML = printContents;
+
+      window.print(); // Open print modal
+
+      // Restore original page
+      document.body.innerHTML = originalContents;
+      window.location.reload(); // reload so React re-renders UI
+      setSelectedPrintItem(null);
+    }
+  }, [selectedPrintItem])
 
   return (
     <AppLayout>
@@ -194,6 +240,7 @@ export default function ExpensesPage() {
                     <TableHead>Total Crates</TableHead>
                     <TableHead>Total Amount</TableHead>
                     <TableHead>Last Transaction</TableHead>
+                    <TableHead>Actions</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -229,10 +276,16 @@ export default function ExpensesPage() {
                           Rs. {expense.totalAmount.toLocaleString()}
                         </TableCell>
                         <TableCell>
-                          {expense.lastTransaction ? 
-                            format(new Date(expense.lastTransaction), 'MMM dd, yyyy') : 
+                          {expense.lastTransaction ?
+                            format(new Date(expense.lastTransaction), 'MMM dd, yyyy') :
                             'N/A'
                           }
+                        </TableCell>
+                        <TableCell>
+                          <Button onClick={() => handlePrint(expense)} className="shrink-0">
+                            <Printer className="mr-2 h-4 w-4" />
+                            Print
+                          </Button>
                         </TableCell>
                       </TableRow>
                     ))
@@ -249,7 +302,7 @@ export default function ExpensesPage() {
                   {Math.min(pagination.page * pagination.limit, pagination.total)} of{' '}
                   {pagination.total} results
                 </div>
-                
+
                 <div className="flex items-center space-x-2">
                   <Button
                     variant="outline"
@@ -260,12 +313,12 @@ export default function ExpensesPage() {
                     <ChevronLeft className="h-4 w-4" />
                     Previous
                   </Button>
-                  
+
                   <div className="flex items-center space-x-1">
                     {Array.from({ length: pagination.pages }, (_, i) => i + 1)
-                      .filter(page => 
-                        page === 1 || 
-                        page === pagination.pages || 
+                      .filter(page =>
+                        page === 1 ||
+                        page === pagination.pages ||
                         Math.abs(page - pagination.page) <= 1
                       )
                       .map((page, index, array) => (
@@ -284,7 +337,7 @@ export default function ExpensesPage() {
                       ))
                     }
                   </div>
-                  
+
                   <Button
                     variant="outline"
                     size="sm"
@@ -300,6 +353,7 @@ export default function ExpensesPage() {
           </CardContent>
         </Card>
       </div>
+      <ExpensesPrint ref={printRef} details={selectedPrintItem} />
     </AppLayout>
   );
 }

@@ -19,25 +19,20 @@ import {
   User
 } from 'lucide-react';
 import Link from 'next/link';
-import useStorage from '@/hooks/use-storage';
 
 const navigation = [
   { name: 'Dashboard', href: '/', icon: Home },
   { name: 'Stock In', href: '/stock-in', icon: Package },
   { name: 'Stock Out', href: '/stock-out', icon: PackageOpen },
   { name: 'Expenses', href: '/expenses', icon: Receipt },
-  { name: 'Reports', href: '/reports', icon: FileText },
-];
-
-const adminNavigation = [
   { name: 'Users', href: '/users', icon: Users },
+  { name: 'Reports', href: '/reports', icon: FileText },
 ];
 
 export default function AppLayout({ children }) {
   const [user, setUser] = useState(null);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const router = useRouter();
-  const storage = useStorage();
   const pathname = usePathname();
 
   useEffect(() => {
@@ -46,8 +41,7 @@ export default function AppLayout({ children }) {
 
   const fetchUser = async () => {
     try {
-      const user = JSON.parse(localStorage.getItem('user'));
-      const response = await fetch(`/api/auth/me?id=${user.id}`);
+      const response = await fetch(`/api/auth/me`);
       if (response.ok) {
         const data = await response.json();
         setUser(data.user);
@@ -64,7 +58,6 @@ export default function AppLayout({ children }) {
       });
 
       if (response.ok) {
-        storage.clearStorage();
         toast.success('Logged out successfully');
         router.push('/login');
       }
@@ -73,21 +66,11 @@ export default function AppLayout({ children }) {
     }
   };
 
-  const allNavigation = user?.role === 'admin' 
-    ? [...navigation, ...adminNavigation]
-    : navigation;
-
-  // Filter out Users page for non-admin users
-  const filteredNavigation = allNavigation.filter(item => {
-    if (item.name === 'Users' && user?.role !== 'admin') {
-      return false;
-    }
-    return true;
-  });
+  const allNavigation = navigation;
 
   const NavigationItems = ({ mobile = false }) => (
     <>
-      {filteredNavigation.map((item) => {
+      {allNavigation.map((item) => {
         const Icon = item.icon;
         const isActive = pathname === item.href;
         

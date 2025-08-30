@@ -8,46 +8,19 @@ import StockTable from '@/components/tables/StockTable';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { toast } from 'sonner';
-import useStorage from '@/hooks/use-storage';
 
 export default function Dashboard() {
   const [kpis, setKpis] = useState(null);
   const [loading, setLoading] = useState(true);
   const router = useRouter();
-  const storage = useStorage();
+
+  const init = async () => {
+    await fetchKPIs();
+    setLoading(false);
+  };
 
   useEffect(() => {
-    const handleSession = () => {
-      const token = storage.getToken();
-      const user = storage.getUser();
-
-      if (!token || !user) {
-        router.push('/login');
-        return false;
-      }
-
-      try {
-        if (!user.id) {
-          router.push('/login');
-          return false;
-        }
-      } catch {
-        router.push('/login');
-        return false;
-      }
-
-      return true;
-    };
-
-    const init = async () => {
-      const valid = handleSession();
-      if (valid) {
-        await fetchKPIs();
-      }
-      setLoading(false);
-    };
-
-    init();
+      init();
   }, [router]);
 
   const fetchKPIs = async () => {
@@ -57,7 +30,8 @@ export default function Dashboard() {
         const data = await response.json();
         setKpis(data.kpis);
       }
-    } catch {
+    } catch (error) {
+      console.error('Error fetching KPIs:', error);
       toast.error('Failed to fetch KPIs');
     }
   };
@@ -72,7 +46,7 @@ export default function Dashboard() {
           </p>
         </div>
         {loading ? (
-          <div>loading...</div>
+          <div className="text-center text-muted">Checking session...</div>
         ) : (
           <>
             <KPICards kpis={kpis} />
@@ -104,3 +78,5 @@ export default function Dashboard() {
     </AppLayout>
   );
 }
+
+export const dynamic = 'force-dynamic';

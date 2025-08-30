@@ -8,6 +8,10 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { toast } from 'sonner';
 import { format } from 'date-fns';
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem } from '@/components/ui/command';
+import { Check, ChevronsUpDown, Loader2 } from "lucide-react";
+import { cn } from "@/lib/utils"
 
 export default function StockOutModal({ isOpen, onClose, onSuccess, editData = null }) {
   const [formData, setFormData] = useState({
@@ -15,12 +19,15 @@ export default function StockOutModal({ isOpen, onClose, onSuccess, editData = n
     partyName: '',
     subPartyName: '',
     goodDeliveredTo: '',
-    partyDeliveryOn: '',
-    coldStoreDeliveryOn: '',
+    partyGrNo: '',
+    coldStoreGrNo: '',
     vehicle: '',
     driverName: ''
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [parties, setParties] = useState([]);  // store all parties
+  const [loadingParties, setLoadingParties] = useState(false);
+  const [openCmd, setOpenCmd] = useState(false)
 
   useEffect(() => {
     if (editData) {
@@ -29,8 +36,8 @@ export default function StockOutModal({ isOpen, onClose, onSuccess, editData = n
         partyName: editData.partyName || '',
         subPartyName: editData.subPartyName || '',
         goodDeliveredTo: editData.goodDeliveredTo || '',
-        partyDeliveryOn: editData.partyDeliveryOn ? format(new Date(editData.partyDeliveryOn), 'yyyy-MM-dd') : '',
-        coldStoreDeliveryOn: editData.coldStoreDeliveryOn ? format(new Date(editData.coldStoreDeliveryOn), 'yyyy-MM-dd') : '',
+        partyGrNo: editData.partyGrNo || '',
+        coldStoreGrNo: editData.coldStoreGrNo || '',
         vehicle: editData.vehicle || '',
         driverName: editData.driverName || ''
       });
@@ -45,8 +52,8 @@ export default function StockOutModal({ isOpen, onClose, onSuccess, editData = n
       partyName: '',
       subPartyName: '',
       goodDeliveredTo: '',
-      partyDeliveryOn: '',
-      coldStoreDeliveryOn: '',
+      partyGrNo: '',
+      coldStoreGrNo: '',
       vehicle: '',
       driverName: ''
     });
@@ -93,13 +100,40 @@ export default function StockOutModal({ isOpen, onClose, onSuccess, editData = n
     onClose();
   };
 
+  useEffect(() => {
+    if (!open || parties.length > 0) return
+    const fetchParties = async () => {
+      setLoadingParties(true);
+      try {
+        const res = await fetch('/api/party');
+        const data = await res.json();
+        if (res.ok) {
+          setParties(data.parties || []);
+        } else {
+          toast.error(data.error || 'Failed to load parties');
+        }
+      } catch (error) {
+        toast.error('Error fetching parties');
+      } finally {
+        setLoadingParties(false);
+      }
+    };
+
+    if (isOpen) {
+      fetchParties();
+    }
+  }, [isOpen]);
+
   return (
     <Dialog open={isOpen} onOpenChange={handleClose}>
       <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>{editData ? 'Edit Stock Out' : 'Add Stock Out'}</DialogTitle>
+          <DialogTitle>
+            {editData ? 'Edit Stock Out' : 'Add Stock Out'}
+            <span className='ml-2'>(Gate Pass)</span>
+          </DialogTitle>
         </DialogHeader>
-        
+
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
             <Label htmlFor="date">Date *</Label>
@@ -115,83 +149,138 @@ export default function StockOutModal({ isOpen, onClose, onSuccess, editData = n
 
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <Label htmlFor="partyName">Party Name *</Label>
-              <Input
-                id="partyName"
-                name="partyName"
-                value={formData.partyName}
-                onChange={handleChange}
-                required
-              />
+              <Label>Party Name *</Label>
+              <Popover open={openCmd} onOpenChange={setOpenCmd}>
+                <PopoverTrigger asChild>
+                  <Button
+                    variant="outline"
+                    role="combobox"
+                    className="w-full justify-between"
+                  >
+                    {formData.partyName || "Select or add party..."}
+                    <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-[300px] p-0">
+                  <Command>
+                    <CommandInput
+                      placeholder="Search or add party..."
+                      onValueChange={(val) => {
+                        setFormData(prev => ({ ...prev, partyName: val }))
+                      }}
+                      value={formData.partyName}
+                    />
+                    {loadingParties ? (
+                      <div className="flex items-center justify-center p-4">
+                        <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                        <span className="text-sm text-gray-500">Loading...</span>
+                      </div>
+                    ) : (
+                      <>
+                        {/* If no party found → allow adding new */}
+                        <CommandEmpty>
+                          <Button
+                            variant="ghost"
+                            className="w-full justify-start"
+                            onClick={() => {
+                              setFormData(prev => ({ ...prev, partyName: formData.partyName }))
+                              setOpenCmd(false)
+                            }}
+                          >
+                            ➕ Add "{formData.partyName}"
+                          </Button>
+                        </CommandEmpty>
+
+                        <CommandGroup>
+                          {parties.map((party, idx) => (
+                            <CommandItem
+                              key={idx}
+                              value={party}
+                              onSelect={(currentValue) => {
+                                setFormData(prev => ({ ...prev, partyName: currentValue }))
+                                setOpenCmd(false) // close after select
+                              }}
+                            >
+                              <Check
+                                className={cn(
+                                  "mr-2 h-4 w-4",
+                                  formData.partyName === party ? "opacity-100" : "opacity-0"
+                                )}
+                              />
+                              {party}
+                            </CommandItem>
+                          ))}
+                        </CommandGroup>
+                      </>
+                    )}
+                  </Command>
+                </PopoverContent>
+              </Popover>
             </div>
+
             <div>
-              <Label htmlFor="subPartyName">Sub Party Name *</Label>
+              <Label htmlFor="subPartyName">Sub Party Name</Label>
               <Input
                 id="subPartyName"
                 name="subPartyName"
                 value={formData.subPartyName}
                 onChange={handleChange}
-                required
               />
             </div>
           </div>
 
           <div>
-            <Label htmlFor="goodDeliveredTo">Good Delivered To *</Label>
+            <Label htmlFor="goodDeliveredTo">Good Delivered To</Label>
             <Textarea
               id="goodDeliveredTo"
               name="goodDeliveredTo"
               value={formData.goodDeliveredTo}
               onChange={handleChange}
-              required
               rows={3}
             />
           </div>
 
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <Label htmlFor="partyDeliveryOn">Party Delivery On *</Label>
+              <Label htmlFor="partyGrNo">Party GR No. *</Label>
               <Input
-                id="partyDeliveryOn"
-                name="partyDeliveryOn"
-                type="date"
-                value={formData.partyDeliveryOn}
+                id="partyGrNo"
+                name="partyGrNo"
+                type="text"
+                value={formData.partyGrNo}
                 onChange={handleChange}
                 required
               />
             </div>
             <div>
-              <Label htmlFor="coldStoreDeliveryOn">Cold Store Delivery On *</Label>
+              <Label htmlFor="coldStoreGrNo">Cold Storage GR No.</Label>
               <Input
-                id="coldStoreDeliveryOn"
-                name="coldStoreDeliveryOn"
-                type="date"
-                value={formData.coldStoreDeliveryOn}
+                id="coldStoreGrNo"
+                name="coldStoreGrNo"
+                type="text"
+                value={formData.coldStoreGrNo}
                 onChange={handleChange}
-                required
               />
             </div>
           </div>
 
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <Label htmlFor="vehicle">Vehicle *</Label>
+              <Label htmlFor="vehicle">Vehicle</Label>
               <Input
                 id="vehicle"
                 name="vehicle"
                 value={formData.vehicle}
                 onChange={handleChange}
-                required
               />
             </div>
             <div>
-              <Label htmlFor="driverName">Driver Name *</Label>
+              <Label htmlFor="driverName">Driver Name</Label>
               <Input
                 id="driverName"
                 name="driverName"
                 value={formData.driverName}
                 onChange={handleChange}
-                required
               />
             </div>
           </div>

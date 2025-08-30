@@ -9,7 +9,6 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { toast } from 'sonner';
 import { Loader2, Package } from 'lucide-react';
 import axios from "axios";
-import useStorage from "@/hooks/use-storage";
 
 export default function LoginPage() {
   const [formData, setFormData] = useState({
@@ -18,36 +17,33 @@ export default function LoginPage() {
   });
   const [isLoading, setIsLoading] = useState(false);
   const router = useRouter();
-  const storage = useStorage();
 
   const handleSubmit = async (e) => {
-    e.preventDefault();
+    e.preventDefault();  
     setIsLoading(true);
-
+  
     try {
       const response = await axios.post('/api/auth/login', formData, {
         withCredentials: true
       });
-      const data = response.data;
 
-      if(response?.statusText === 'OK') {
-        toast.success('Login successful!');
-        let user = data.user;
-        storage.saveToken(user.accessToken);
-        delete user.accessToken;
-        storage.saveUser(user);
+      const data = response.data;
+      
+      if (response) {
+        document.cookie = `token=${data?.accessToken}; path=/; max-age=${7 * 24 * 60 * 60}`;
+        toast.success('Login successful!');  
         router.push('/');
       } else {
         toast.error(data.error || 'Login failed');
       }
-
+  
     } catch (error) {
       toast.error('Network error. Please try again.');
     } finally {
       setIsLoading(false);
     }
   };
-
+  
   const handleChange = (e) => {
     setFormData(prev => ({
       ...prev,
@@ -113,3 +109,5 @@ export default function LoginPage() {
     </div>
   );
 }
+
+export const dynamic = 'force-dynamic';

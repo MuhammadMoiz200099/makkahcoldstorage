@@ -14,7 +14,6 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Plus, Search, MoreVertical, Eye, Edit, Trash2, ChevronLeft, ChevronRight } from 'lucide-react';
 import { toast } from 'sonner';
 import { format } from 'date-fns';
-import useStorage from '@/hooks/use-storage';
 
 export default function UsersPage() {
   const [users, setUsers] = useState([]);
@@ -44,8 +43,6 @@ export default function UsersPage() {
     isActive: true
   });
 
-  const storage = useStorage();
-
   useEffect(() => {
     fetchUsers();
   }, [search, pagination.page]);
@@ -59,11 +56,7 @@ export default function UsersPage() {
         search: search
       });
 
-      const response = await fetch(`/api/users?${params}`, {
-        headers: {
-          'Authorization': `Bearer ${storage.getToken()}`,
-        },
-      });
+      const response = await fetch(`/api/users?${params}`);
 
       if (response.ok) {
         const result = await response.json();
@@ -111,7 +104,6 @@ export default function UsersPage() {
         method,
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${storage.getToken()}`,
         },
         body: JSON.stringify(payload),
       });
@@ -136,9 +128,6 @@ export default function UsersPage() {
       try {
         const response = await fetch(`/api/users/${userId}`, {
           method: 'DELETE',
-          headers: {
-            'Authorization': `Bearer ${storage.getToken()}`,
-          },
         });
 
         if (response.ok) {
