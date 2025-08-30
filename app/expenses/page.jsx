@@ -8,17 +8,21 @@ import { Input } from '@/components/ui/input';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Search, ChevronLeft, ChevronRight, Calendar, DollarSign, Package, PackageOpen, Printer } from 'lucide-react';
+import { Search, ChevronLeft, ChevronRight, Calendar, DollarSign, Package, PackageOpen, Printer, MoreVertical, Eye } from 'lucide-react';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { toast } from 'sonner';
 import { format, subMonths } from 'date-fns';
 import axios from "axios";
 import ExpensesPrint from '@/components/print/expenses';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 
 export default function ExpensesPage() {
   const printRef = useRef();
   const [expenses, setExpenses] = useState([]);
   const [loading, setLoading] = useState(false);
   const [search, setSearch] = useState('');
+  const [isViewModalOpen, setIsViewModalOpen] = useState(false);
+  const [selectedItem, setSelectedItem] = useState(null);
   const [selectedMonth, setSelectedMonth] = useState(format(new Date(), 'yyyy-MM'));
   const [selectedPrintItem, setSelectedPrintItem] = useState(null);
   const [pagination, setPagination] = useState({
@@ -97,15 +101,18 @@ export default function ExpensesPage() {
     try {
       const res = await axios.get(`/api/party/${encodeURIComponent(item.partyName)}`);
       const response = res.data;
-      if(response.stockIn && response.stockIn.length) {
-        const stocks = response.stockIn;
-        const size = stocks.length;
+      if (response.stockIn && response.stockIn.length) {
+        const stockIns = response.stockIn;
+        const stockOuts = response.stockOut;
+        const stockInsSize = stockIns.length;
+        const stockOutSize = stockOuts.length;
+        const size = stockInsSize + stockOutSize;
         let data = {
           partyName: response.partyName,
           stockOut: response.stockOut,
-          stockIn: []
+          stockIn: [],
         }
-        if(size > 20) {
+        if (size > 20) {
           data.stockIn = response.stockIn;
         } else {
           let dummy = Array(20 - size).fill({});
@@ -114,7 +121,7 @@ export default function ExpensesPage() {
         }
         setSelectedPrintItem(data)
       }
-      
+
     } catch (error) {
       if (error.response) {
         console.error("API Error:", error.response.data);
@@ -124,9 +131,13 @@ export default function ExpensesPage() {
     }
   };
 
+  const handleView = (item) => {
+    setSelectedItem(item);
+    setIsViewModalOpen(true);
+  };
+
   useEffect(() => {
     if (selectedPrintItem) {
-      console.log(selectedPrintItem)
       const printContents = printRef.current.innerHTML;
       const originalContents = document.body.innerHTML;
 
@@ -282,10 +293,23 @@ export default function ExpensesPage() {
                           }
                         </TableCell>
                         <TableCell>
-                          <Button onClick={() => handlePrint(expense)} className="shrink-0">
-                            <Printer className="mr-2 h-4 w-4" />
-                            Print
-                          </Button>
+                          <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                              <Button variant="ghost" className="h-8 w-8 p-0">
+                                <MoreVertical className="h-4 w-4" />
+                              </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end">
+                              <DropdownMenuItem onClick={() => handleView(expense)}>
+                                <Eye className="mr-2 h-4 w-4" />
+                                View
+                              </DropdownMenuItem>
+                              <DropdownMenuItem onClick={() => handlePrint(expense)}>
+                                <Printer className="mr-2 h-4 w-4" />
+                                Print
+                              </DropdownMenuItem>
+                            </DropdownMenuContent>
+                          </DropdownMenu>
                         </TableCell>
                       </TableRow>
                     ))
@@ -352,6 +376,48 @@ export default function ExpensesPage() {
             )}
           </CardContent>
         </Card>
+
+        {/* View Modal */}
+        <Dialog open={isViewModalOpen} onOpenChange={() => {
+          setIsViewModalOpen(false);
+          setSelectedItem(null);
+        }}>
+          <DialogContent className="max-w-2xl">
+            <DialogHeader>
+              <DialogTitle>Expense Details for {selectedItem?.partyName}</DialogTitle>
+            </DialogHeader>
+            {selectedItem && (
+              <div className="space-y-4">
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="text-sm font-medium text-gray-500">PartyName</label>
+                    <p className="font-semibold">{selectedItem?.partyName}</p>
+                  </div>
+                  <div>
+                    <label className="text-sm font-medium text-gray-500">Last Transaction Date</label>
+                    <p>{format(new Date(selectedItem?.lastTransaction), 'MMM dd, yyyy')}</p>
+                  </div>
+                  <div>
+                    <label className="text-sm font-medium text-gray-500">Total Stock In Count</label>
+                    <p>{selectedItem?.stockInCount}</p>
+                  </div>
+                  <div>
+                    <label className="text-sm font-medium text-gray-500">Total Stock Out Count</label>
+                    <p>{selectedItem?.stockOutCount}</p>
+                  </div>
+                  <div>
+                    <label className="text-sm font-medium text-gray-500">Total Amount</label>
+                    <p>{selectedItem?.totalAmount}</p>
+                  </div>
+                  <div>
+                    <label className="text-sm font-medium text-gray-500">Total Crates</label>
+                    <p>{selectedItem?.totalCrates}</p>
+                  </div>
+                </div>
+              </div>
+            )}
+          </DialogContent>
+        </Dialog>
       </div>
       <ExpensesPrint ref={printRef} details={selectedPrintItem} />
     </AppLayout>
